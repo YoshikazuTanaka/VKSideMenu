@@ -40,7 +40,8 @@
 @interface VKSideMenu() <UITableViewDelegate, UITableViewDataSource>
 {
     UITapGestureRecognizer *tapGesture;
-    UISwipeGestureRecognizer *swipeGesture ;
+    UIPanGestureRecognizer *panGesture ;
+    CGRect beginGestureFrame ;
 }
 
 @property (nonatomic, strong) UIView *overlay;
@@ -169,9 +170,10 @@
     self.tableView.backgroundColor  = [UIColor clearColor];
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
     
-    swipeGesture = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(didTap:)] ;
-    swipeGesture.direction = UISwipeGestureRecognizerDirectionLeft ;
-    [self.tableView addGestureRecognizer:swipeGesture] ;
+    if (self.enableGestures) {
+        panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(didPan:)] ;
+        [self.tableView addGestureRecognizer:panGesture] ;
+    }
     
     [self.view addSubview:self.tableView];
 }
@@ -220,6 +222,7 @@
          [self.view removeFromSuperview];
          [self.overlay removeFromSuperview];
          [self.overlay removeGestureRecognizer:tapGesture];
+         [self.tableView removeGestureRecognizer:panGesture] ;
          
          self.overlay = nil;
          self.tableView = nil;
@@ -377,6 +380,39 @@
 {
     if (gesture.state == UIGestureRecognizerStateEnded && self.enableGestures)
         [self showWithSize:self.size];
+}
+
+- (void)didPan:(UIPanGestureRecognizer*)gesture
+{
+    if (gesture.state == UIGestureRecognizerStateBegan) {
+        beginGestureFrame = self.view.frame ;
+        return ;
+    }
+    
+    if (gesture.state == UIGestureRecognizerStateEnded) {
+        CGPoint point = [gesture translationInView:self.tableView] ;
+        __block CGRect frame = self.view.frame ;
+        frame.origin.x = beginGestureFrame.origin.x + point.x ;
+        if (frame.size.width + frame.origin.x < frame.size.width / 2) {
+            [self hide] ;
+            return ;
+        } else {
+            [UIView animateWithDuration:0.275 animations:^{
+                frame.origin.x = 0 ;
+                self.view.frame = frame ;
+            }] ;
+            return ;
+        }
+    }
+    
+    CGPoint point = [gesture translationInView:self.tableView] ;
+    CGRect frame = self.view.frame ;
+    frame.origin.x = beginGestureFrame.origin.x + point.x ;
+    if (frame.origin.x > 0) {
+        frame.origin.x = 0 ;
+    }
+    
+    self.view.frame = frame ;
 }
 
 #pragma mark - Helpers
