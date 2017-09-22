@@ -146,22 +146,8 @@
 //    }
     
     CGRect frame = [self frameHidden];
-    
-    if(SYSTEM_VERSION_LESS_THAN(@"8.0"))
-    {
-        self.view = [[UIView alloc] initWithFrame:frame];
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        self.view.backgroundColor = self.backgroundColor;
-#pragma clang diagnostic pop
-    }
-    else
-    {
-        UIVisualEffect *blurEffect = [UIBlurEffect effectWithStyle:self.blurEffectStyle];
-        self.view = [[UIVisualEffectView alloc] initWithEffect:blurEffect];
-        self.view.frame = frame;
-    }
-    
+    self.view = [[UIView alloc] initWithFrame:frame];
+
     // Setup content table view
     self.tableView = [[UITableView alloc] initWithFrame:self.view.bounds style:UITableViewStyleGrouped];
     self.tableView.delegate         = self;
@@ -169,13 +155,29 @@
     self.tableView.separatorColor   = [UIColor clearColor];
     self.tableView.backgroundColor  = [UIColor clearColor];
     self.tableView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+
+    if(SYSTEM_VERSION_LESS_THAN(@"8.0"))
+    {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+        self.view.backgroundColor = self.backgroundColor;
+#pragma clang diagnostic pop
+        [self.view addSubview:self.tableView] ;
+    }
+    else
+    {
+        UIVisualEffect *blurEffect = [UIBlurEffect effectWithStyle:self.blurEffectStyle];
+        UIVisualEffectView *blurEffectView = [[UIVisualEffectView alloc] initWithEffect:blurEffect] ;
+        blurEffectView.frame = self.view.bounds ;
+        [self.view.backgroundColor colorWithAlphaComponent:0.9f];
+        [self.view addSubview:blurEffectView] ;
+        [blurEffectView.contentView addSubview:self.tableView] ;
+    }
     
     if (self.enableGestures) {
         panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(didPan:)] ;
         [self.tableView addGestureRecognizer:panGesture] ;
     }
-    
-    [self.view addSubview:self.tableView];
 }
 
 #pragma mark - Appearance
